@@ -63,7 +63,7 @@ func SendERC20(request models.ERC20) (string, error)  {
 		return "", err
 	}
 	oneToken := big.NewInt(10000000000)
-	amount := new(big.Int).Mul(big.NewInt(int64(token["value"].(int))), oneToken)
+	amount := new(big.Int).Mul(big.NewInt(int64(token["value"].(float64))), oneToken)
 
 	input, err := parsed.Pack("transfer", fromAddr, amount)
 	signedTx, err := createTx(client, token["address"].(string), input, big.NewInt(0))

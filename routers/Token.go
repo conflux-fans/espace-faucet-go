@@ -1,17 +1,17 @@
 package routers
 
 import (
+	"errors"
 	"github.com/conflux-fans/espace-faucet-go/faucetErrors"
 	"github.com/conflux-fans/espace-faucet-go/models"
 	"github.com/conflux-fans/espace-faucet-go/services"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"time"
 )
 
 var lastCFXClaimCache = make(map[string]int64)
-var lastERC20claimCache = make(map[string]int64)
-
-
+var lastERC20ClaimCache = make(map[string]map[string]int64)
 
 func sendCFX(c *gin.Context)  {
 	addr := c.Query("address")
@@ -40,15 +40,24 @@ func sendERC20(c *gin.Context)  {
 		renderBaseError(c, faucetErrors.INVALID_REQUEST_ERROR)
 		return
 	}
-	value,ok := lastERC20claimCache[ERC20Data.Address]
+	if err := checkERC20(ERC20Data.Name); err != nil {
+		renderBaseError(c, faucetErrors.INVALID_REQUEST_ERROR)
+		return
+	}
+
+	value,ok := lastERC20ClaimCache[ERC20Data.Address][ERC20Data.Name]
 	if ok {
 		res := time.Now().Unix() - value
 		if time.Duration(res) < 3600000 {
 			renderBaseError(c, faucetErrors.TIME_ERROR)
 			return
 		}
+		lastERC20ClaimCache[ERC20Data.Address][ERC20Data.Name] = time.Now().Unix()
+	}else{
+		subMap := make(map[string]int64)
+		subMap[ERC20Data.Name] = time.Now().Unix()
+		lastERC20ClaimCache[ERC20Data.Address] = subMap
 	}
-	lastERC20claimCache[ERC20Data.Address] = time.Now().Unix()
 	res, err := services.SendERC20(*ERC20Data)
 	renderResponse(c, res, err)
 
@@ -59,13 +68,15 @@ func deployERC20(c *gin.Context) {
 	renderResponse(c, res, err)
 }
 
-//func queryERC20(c *gin.Context) {
-//	err := services.QueryERC20()
-//	if err != nil {
-//		renderBaseError(c, faucetErrors.INVALID_REQUEST_ERROR)
-//		return
-//	}
-//
-//}
+func checkERC20(symbol string) error {
+	erc20Data := viper.GetStringMap("erc20")
+	for i := range erc20Data {
+		if symbol == i{
+			return nil
+		}
+	}
+	return errors.New("Unsupported symbol")
+}
+
 
 
