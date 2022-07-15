@@ -13,9 +13,6 @@ func SetupRoutes(router *gin.Engine) {
 	router.POST("/erc20", deployERC20)
 
 	apiV1 := router.Group("/v1")
-	apiV1.GET("/captcha/", services.GetCaptcha)
-	apiV1.GET("/captcha/true", services.CheckCapcha)
-
 	apiV1.POST("/CFX", sendCFX)
 	apiV1.POST("/ERC20", sendERC20)
 }
