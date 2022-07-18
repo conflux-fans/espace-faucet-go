@@ -29,11 +29,12 @@ func CheckCaptcha(c *gin.Context) {
 	captchaVal := c.DefaultQuery("captchaVal", "")
 
 	res := store.Verify(id, captchaVal, true)
-	c.JSON(http.StatusOK, gin.H{
-		"data": res,
-	})
 	if !res {
-		c.Abort()
+		c.AbortWithStatusJSON(402, gin.H{
+			"code":    402,
+			"message": "wrong captcha value",
+		})
+		return
 	}
 	c.Next()
 }
