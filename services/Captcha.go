@@ -24,7 +24,7 @@ func GetCaptcha(c *gin.Context) {
 	})
 }
 
-func CheckCapcha(c *gin.Context) {
+func CheckCaptcha(c *gin.Context) {
 	id := c.DefaultQuery("captchaId", "")
 	captchaVal := c.DefaultQuery("captchaVal", "")
 
@@ -32,4 +32,8 @@ func CheckCapcha(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"data": res,
 	})
+	if !res {
+		c.Abort()
+	}
+	c.Next()
 }
