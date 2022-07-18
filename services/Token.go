@@ -5,9 +5,7 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"github.com/conflux-fans/espace-faucet-go/models"
-	"github.com/conflux-fans/espace-faucet-go/testData"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -16,13 +14,14 @@ import (
 	"github.com/spf13/viper"
 	"math/big"
 	"strings"
+	"time"
 )
 
 func SendCFX(toAddress string) (string, error) {
 	client := ethSdk.NewClient(getClient())
 	oneCfx := big.NewInt(1000000000000000000)
 
-	amount := new(big.Int).Mul(big.NewInt(viper.GetInt64("sendcfx")), oneCfx)
+	amount := new(big.Int).Mul(big.NewInt(int64(viper.GetFloat64("sendcfx"))), oneCfx)
 	signedTx, err := createTx(client, toAddress, nil, amount)
 	if err != nil {
 		return "", err
@@ -62,7 +61,7 @@ func SendERC20(request models.ERC20) (string, error)  {
 	if err != nil {
 		return "", err
 	}
-	oneToken := big.NewInt(10000000000)
+	oneToken := big.NewInt(1000000000000000000)
 	amount := new(big.Int).Mul(big.NewInt(int64(token["value"].(float64))), oneToken)
 
 	input, err := parsed.Pack("transfer", fromAddr, amount)
@@ -79,6 +78,7 @@ func SendERC20(request models.ERC20) (string, error)  {
 		if err != nil {
 			return "", err
 		}
+		time.Sleep(10 * time.Millisecond)
 	}
 	return signedTx.Hash().String(), nil
 }
@@ -138,34 +138,6 @@ func checkBalance(client *ethSdk.Client, fromAddr *common.Address, amount *big.I
 		return errors.New("Insufficient balance")
 	}
 	return nil
-}
-
-func DeployERC20() (*models.Resp, error){
-	client := ethSdk.NewClient(getClient())
-	fromAddr, fromPrivKey, err := getFromAddress()
-	if err != nil {
-		return nil, err
-	}
-	nonce, err := client.PendingNonceAt(context.Background(), *fromAddr)
-	if err != nil {
-		return nil, err
-	}
-	gasPrice, err := client.SuggestGasPrice(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	auth := bind.NewKeyedTransactor(fromPrivKey)
-	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)
-	auth.GasLimit = uint64(3000000)
-	auth.GasPrice = gasPrice
-
-	oneCfx := new(big.Int).Mul(big.NewInt(1e9), big.NewInt(1e9))
-	addr, tx, _, err := testData.DeployToken(auth, client, new(big.Int).Mul(big.NewInt(1000000), oneCfx), "k", uint8(10), "KKK")
-	return &models.Resp{
-		ContractAddr: addr.String(),
-		Hash: tx.Hash().String(),
-	}, nil
 }
 
 func getClient() *rpc.Client {

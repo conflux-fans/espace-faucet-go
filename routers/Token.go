@@ -63,11 +63,6 @@ func sendERC20(c *gin.Context)  {
 
 }
 
-func deployERC20(c *gin.Context) {
-	res, err := services.DeployERC20()
-	renderResponse(c, res, err)
-}
-
 func checkERC20(symbol string) error {
 	erc20Data := viper.GetStringMap("erc20")
 	for i := range erc20Data {
