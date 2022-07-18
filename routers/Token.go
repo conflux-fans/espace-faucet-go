@@ -13,14 +13,14 @@ import (
 var lastCFXClaimCache = make(map[string]int64)
 var lastERC20ClaimCache = make(map[string]map[string]int64)
 
-func sendCFX(c *gin.Context)  {
+func sendCFX(c *gin.Context) {
 	addr := c.Query("address")
 	if addr == "" {
 		renderBaseError(c, faucetErrors.INVALID_REQUEST_ERROR)
 		return
 	}
 
-	value,ok := lastCFXClaimCache[addr]
+	value, ok := lastCFXClaimCache[addr]
 	if ok {
 		res := time.Now().Unix() - value
 		if time.Duration(res) < 3600000 {
@@ -34,7 +34,7 @@ func sendCFX(c *gin.Context)  {
 	renderResponse(c, res, err)
 }
 
-func sendERC20(c *gin.Context)  {
+func sendERC20(c *gin.Context) {
 	var ERC20Data *models.ERC20
 	if err := c.ShouldBind(&ERC20Data); err != nil {
 		renderBaseError(c, faucetErrors.INVALID_REQUEST_ERROR)
@@ -45,7 +45,7 @@ func sendERC20(c *gin.Context)  {
 		return
 	}
 
-	value,ok := lastERC20ClaimCache[ERC20Data.Address][ERC20Data.Name]
+	value, ok := lastERC20ClaimCache[ERC20Data.Address][ERC20Data.Name]
 	if ok {
 		res := time.Now().Unix() - value
 		if time.Duration(res) < 3600000 {
@@ -53,7 +53,7 @@ func sendERC20(c *gin.Context)  {
 			return
 		}
 		lastERC20ClaimCache[ERC20Data.Address][ERC20Data.Name] = time.Now().Unix()
-	}else{
+	} else {
 		subMap := make(map[string]int64)
 		subMap[ERC20Data.Name] = time.Now().Unix()
 		lastERC20ClaimCache[ERC20Data.Address] = subMap
@@ -66,12 +66,9 @@ func sendERC20(c *gin.Context)  {
 func checkERC20(symbol string) error {
 	erc20Data := viper.GetStringMap("erc20")
 	for i := range erc20Data {
-		if symbol == i{
+		if symbol == i {
 			return nil
 		}
 	}
 	return errors.New("Unsupported symbol")
 }
-
-
-

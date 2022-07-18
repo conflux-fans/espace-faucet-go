@@ -8,11 +8,11 @@ import (
 
 func SetupRoutes(router *gin.Engine) {
 	router.GET("/", indexEndpoint)
-	router.GET("/captcha/", services.GetCaptcha)
 
 	apiV1 := router.Group("/v1")
 	apiV1.Use(services.CheckCaptcha)
 	{
+		apiV1.GET("/captcha", services.GetCaptcha)
 		apiV1.POST("/CFX", sendCFX)
 		apiV1.POST("/ERC20", sendERC20)
 	}
