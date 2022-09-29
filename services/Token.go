@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
+	"fmt"
 	"github.com/conflux-fans/espace-faucet-go/models"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -57,14 +58,12 @@ func SendERC20(request models.ERC20) (string, error)  {
 		return "", err
 	}
 
-	fromAddr, _, err := getFromAddress()
-	if err != nil {
-		return "", err
-	}
-	oneToken := big.NewInt(1000000000000000000)
-	amount := new(big.Int).Mul(big.NewInt(int64(token["value"].(float64))), oneToken)
+	oneToken := big.NewFloat(1000000000000000000)
+	amount := new(big.Float).Mul(big.NewFloat(token["value"].(float64)), oneToken)
+	result := new(big.Int)
+	amount.Int(result)
 
-	input, err := parsed.Pack("transfer", fromAddr, amount)
+	input, err := parsed.Pack("transfer", common.HexToAddress(request.Address), result)
 	signedTx, err := createTx(client, token["address"].(string), input, big.NewInt(0))
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
@@ -93,7 +92,7 @@ func createTx(client *ethSdk.Client, toAddress string, data []byte, amount *big.
 
 	var gasLimit uint64 = 300000
 
-	err = checkBalance(client,fromAddr, amount)
+	err = checkBalance(client, fromAddr, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +125,7 @@ func getFromAddress() (*common.Address, *ecdsa.PrivateKey, error) {
 	}
 	fromPubkey := fromPrivkey.PublicKey
 	fromAddr := crypto.PubkeyToAddress(fromPubkey)
+	fmt.Println(fromAddr)
 	return &fromAddr, fromPrivkey, nil
 }
 
