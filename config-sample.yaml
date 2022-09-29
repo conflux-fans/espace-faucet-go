@@ -26,4 +26,4 @@ ERC20:
     value: 50.0
 sendcfx: 100
 espaceurl: https://evmtestnet.confluxrpc.com
-providerkey: cd3953277ef26de6f6083545480f0e5023bcb85a3a77e8ea11a26b28313f8126
+providerkey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # Replace with your own private key
