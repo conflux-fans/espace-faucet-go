@@ -7,9 +7,9 @@ import (
 )
 
 var store = base64Captcha.DefaultMemStore
+var driver = base64Captcha.NewDriverDigit(80, 240, 5, 0.7, 80)
 
 func GetCaptcha(c *gin.Context) {
-	driver := base64Captcha.NewDriverDigit(80, 240, 5, 0.7, 80)
 	captcha := base64Captcha.NewCaptcha(driver, store)
 	id, content, err := captcha.Generate()
 	if err != nil {
@@ -29,7 +29,7 @@ func CheckCaptcha(c *gin.Context) {
 	captchaVal := c.DefaultQuery("captchaVal", "")
 
 	res := store.Verify(id, captchaVal, true)
-	if !res {
+	if (id == "" || captchaVal == "") || !res {
 		c.AbortWithStatusJSON(402, gin.H{
 			"code":    402,
 			"message": "wrong captcha value",

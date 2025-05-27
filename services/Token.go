@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"github.com/conflux-fans/espace-faucet-go/models"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -125,7 +124,6 @@ func getFromAddress() (*common.Address, *ecdsa.PrivateKey, error) {
 	}
 	fromPubkey := fromPrivkey.PublicKey
 	fromAddr := crypto.PubkeyToAddress(fromPubkey)
-	fmt.Println(fromAddr)
 	return &fromAddr, fromPrivkey, nil
 }
 
