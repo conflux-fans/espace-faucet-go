@@ -4,6 +4,10 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"errors"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/conflux-fans/espace-faucet-go/models"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -12,16 +16,13 @@ import (
 	ethSdk "github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/spf13/viper"
-	"math/big"
-	"strings"
-	"time"
 )
 
 func SendCFX(toAddress string) (string, error) {
 	client := ethSdk.NewClient(getClient())
-	oneCfx := big.NewInt(1000000000000000000)
 
-	amount := new(big.Int).Mul(big.NewInt(int64(viper.GetFloat64("sendcfx"))), oneCfx)
+	// 使用 float64 处理配置，支持 1.5 CFX 等情况
+	amount := toWei(viper.GetFloat64("sendcfx"), 18)
 	signedTx, err := createTx(client, toAddress, nil, amount)
 	if err != nil {
 		return "", err
@@ -34,7 +35,7 @@ func SendCFX(toAddress string) (string, error) {
 
 	var isPending bool
 	for isPending {
-		_, isPending, err =  client.TransactionByHash(context.Background(), signedTx.Hash())
+		_, isPending, err = client.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
 			return "", err
 		}
@@ -43,36 +44,35 @@ func SendCFX(toAddress string) (string, error) {
 	return signedTx.Hash().String(), nil
 }
 
-func SendERC20(request models.ERC20) (string, error)  {
+func SendERC20(request models.ERC20) (string, error) {
 	client := ethSdk.NewClient(getClient())
 	erc20Data := viper.GetStringMap("erc20")
+	erc20AbiStr := viper.GetString("abijson")
 
 	token := erc20Data[request.Name].(map[string]interface{})
 	if token == nil {
 		return "", errors.New("Unsupported token")
 	}
 
-	parsed, err := abi.JSON(strings.NewReader(token["abijson"].(string)))
+	parsed, err := abi.JSON(strings.NewReader(erc20AbiStr))
 	if err != nil {
 		return "", err
 	}
 
-	oneToken := big.NewFloat(1000000000000000000)
-	amount := new(big.Float).Mul(big.NewFloat(token["value"].(float64)), oneToken)
-	result := new(big.Int)
-	amount.Int(result)
+	decimal := token["decimals"].(int)
+	result := toWei(token["value"].(float64), decimal)
 
 	input, err := parsed.Pack("transfer", common.HexToAddress(request.Address), result)
 	signedTx, err := createTx(client, token["address"].(string), input, big.NewInt(0))
 	err = client.SendTransaction(context.Background(), signedTx)
 	if err != nil {
-		panic(err)
+		// panic(err)
 		return "", err
 	}
 
 	var isPending bool
 	for isPending {
-		_, isPending, err =  client.TransactionByHash(context.Background(), signedTx.Hash())
+		_, isPending, err = client.TransactionByHash(context.Background(), signedTx.Hash())
 		if err != nil {
 			return "", err
 		}
@@ -81,7 +81,7 @@ func SendERC20(request models.ERC20) (string, error)  {
 	return signedTx.Hash().String(), nil
 }
 
-func createTx(client *ethSdk.Client, toAddress string, data []byte, amount *big.Int) (*types.Transaction, error){
+func createTx(client *ethSdk.Client, toAddress string, data []byte, amount *big.Int) (*types.Transaction, error) {
 	fromAddr, fromPrivKey, err := getFromAddress()
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func getFromAddress() (*common.Address, *ecdsa.PrivateKey, error) {
 	var privKey = viper.GetString("providerkey")
 	fromPrivkey, err := crypto.HexToECDSA(privKey)
 	if err != nil {
-		panic(err)
+		// panic(err)
 		return nil, nil, err
 	}
 	fromPubkey := fromPrivkey.PublicKey
@@ -142,4 +142,20 @@ func getClient() *rpc.Client {
 	var URL = viper.GetString("espaceurl")
 	rpcClient, _ := rpc.Dial(URL)
 	return rpcClient
+}
+
+// toWei 将 float64 金额根据 decimals 转换为 *big.Int (Wei)
+func toWei(amount float64, decimals int) *big.Int {
+	// 计算 10^decimals
+	multiplier := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimals)), nil)
+
+	// 使用 big.Float 处理浮点数乘法以保证精度
+	fAmount := new(big.Float).SetFloat64(amount)
+	fMultiplier := new(big.Float).SetInt(multiplier)
+	fResult := new(big.Float).Mul(fAmount, fMultiplier)
+
+	// 转换为 big.Int
+	result := new(big.Int)
+	fResult.Int(result)
+	return result
 }
